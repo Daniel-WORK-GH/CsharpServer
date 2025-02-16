@@ -1,42 +1,49 @@
-using System;
-using System.Globalization;
-using System.Security.AccessControl;
+using System.Data;
 using Microsoft.Data.Sqlite;
+using SQLitePCL;
 
-public sealed class Database : IDisposable
+public class Database : IDisposable 
 {
-    private SqliteConnection connection;
+    public SqliteConnection connection;
 
-    public Database(string file_name)
+    public Database(string database_name, string dir = "Databases\\", bool force_create_dir = true, bool force_create_file = true)
     {
-        // Database file path
-        string file_path = Utils.CurrentDir + $"\\Databases\\{file_name}.sqlite";
+        string filePath = $"{dir}{database_name}.sqlite";
+        string connectionString = $"Data Source={filePath}";
 
-        // Connection string to SQLite (use the file path to your .db file)
-        string connectionString = $"Data Source={file_path}";
+        if(!Directory.Exists(dir))
+        {
+            if(force_create_dir) Directory.CreateDirectory(dir);
+            else throw new ArgumentException($"The given directory does not exist, consider setting 'force_create_dir' to True.\n(PATH = {filePath})");
+        }
+
+        if(!File.Exists(filePath))
+        {
+            if(!force_create_file) throw new ArgumentException( $"The given database file does not exist, consider setting 'force_create_file' to True.\n(PATH = {filePath})");
+        }
 
         connection = new SqliteConnection(connectionString);
         connection.Open();
     }
 
-    public NonQueryResult ExecuteNonQuery(string query)
+    public void ExecuteNonQuery(string slq_query)
     {
-        try
+        using (var command = connection.CreateCommand())
         {
-            using (var command = new SqliteCommand(query, connection))
+            try
             {
+                command.CommandText = slq_query;
                 command.ExecuteNonQuery();
             }
-            return new(true, query, "");
-        }
-        catch (Exception ex)
-        {
-            return new(false, query, ex.Message);
+            catch(Exception ex)
+            {
+                System.Console.WriteLine(ex.Message);
+            }
         }
     }
 
     public void Dispose()
     {
-        connection?.Dispose();
+        connection.Dispose();
     }
 }
