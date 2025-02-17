@@ -4,7 +4,7 @@ using SQLitePCL;
 
 public class Database : IDisposable 
 {
-    public SqliteConnection connection;
+    private SqliteConnection connection;
 
     public Database(string database_name, string dir = "Databases\\", bool force_create_dir = true, bool force_create_file = true)
     {
@@ -24,6 +24,11 @@ public class Database : IDisposable
 
         connection = new SqliteConnection(connectionString);
         connection.Open();
+    }
+
+    public SqliteCommand CreateCommand()
+    {
+        return connection.CreateCommand();
     }
 
     public void ExecuteNonQuery(string slq_query)
