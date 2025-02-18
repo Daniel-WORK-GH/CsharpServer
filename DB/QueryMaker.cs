@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Microsoft.Data.Sqlite;
 using Microsoft.Identity.Client;
+using SQLitePCL;
 
 public class QueryMaker
 {
@@ -21,12 +22,14 @@ public class QueryMaker
         public NextT Add_Column(string name, string type);
     }
     
-    public interface looping_column_name_type_builder : query_builder_nonquery_end
+    public interface looping_column_name_type_builder :
+        query_builder_nonquery_end
     {
         public looping_column_name_type_builder Add_Column(string name, string type);
     }
 
-    public interface row_values_builder : query_builder_nonquery_end
+    public interface row_values_builder : 
+        query_builder_nonquery_end
     {
         public row_values_builder Add_Values(params object[] type);
     }
@@ -39,13 +42,13 @@ public class QueryMaker
     public interface looping_table_column_alter_builder :
         query_builder_nonquery_end
     {
+        public looping_table_column_alter_builder Rename_Table(string newname);
+
         public looping_table_column_alter_builder Add_Column(string name, string type);
 
         public looping_table_column_alter_builder Drop_Column(string name);
 
         public looping_table_column_alter_builder Rename_Column(string oldname, string newname);
-
-        public looping_table_column_alter_builder Rename_Table(string newname);
     }
 
     private class create_table :
@@ -205,7 +208,7 @@ public class QueryMaker
 
         public string ExecuteNonQuery()
         {
-            string query = $"ALTER TABLE {name} {string.Join($";\nALTER TABLE {name} ", this.alters)};";
+            string query = $"ALTER TABLE {name} \n\t{string.Join($",\n\t", this.alters)};";
             return query;
         }
     }

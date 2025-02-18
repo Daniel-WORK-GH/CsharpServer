@@ -13,24 +13,12 @@ class Program
         );
 
         string query = QueryMaker.Alter_Talbe.With_Name("oldname")
-            .Add_Column("col4", "int")
+            .Rename_Table("newname")
             .Add_Column("col5", "int")
-            .Drop_Column("col2")
-            .Rename_Table("newtablename")
-            .Rename_Column("col1", "col6")
-            .ExecuteNonQuery();
+            .Add_Column("col7", "int")
+            .Rename_Column("col7", "col8")
+            .Drop_Column("col1").ExecuteNonQuery();
 
         System.Console.WriteLine(query);
-    }
-
-    class MyServer : HttpServer
-    {
-        public override void HandleRequest(string request, HttpListenerResponse response)
-        {
-            if (request == "send_hi")
-            {
-                this.SendRespondString("daniel<br>dan<br>dani<br>dana<br>danielle", response);
-            }
-        }
     }
 }
