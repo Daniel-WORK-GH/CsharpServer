@@ -34,3 +34,9 @@ Querymaker.Alter_Talbe.With_Name("oldname")
     ... ;
 ```
 
+### DELETE FROM {name} WHERE {condition};
+Usage:
+```cs
+Querymaker.Delete_From_Table.With_Name("tablename")
+    .Where("age >= 50");
+```

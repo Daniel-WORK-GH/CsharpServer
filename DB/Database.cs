@@ -24,6 +24,8 @@ public class Database : QueryMaker
 
         connection = new SqliteConnection(connectionString);
         connection.Open();
+
+        this.SetConnection(connection);
     }
 
     public void ExecuteNonQuery(string slq_query)

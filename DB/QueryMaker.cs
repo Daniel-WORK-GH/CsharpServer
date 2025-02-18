@@ -81,7 +81,7 @@ public abstract class QueryMaker : IDisposable
 
         public string ExecuteNonQuery()
         {
-            string query = $"CREATE TABLE {name} (\n\t{string.Join(",\n\t", this.columns)}\n);";
+            string query = $"CREATE TABLE {name} {(columns.Count == 0 ? "" : $"(\n\t{string.Join(",\n\t", this.columns)}\n)")};";
 
             try
             {
