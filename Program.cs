@@ -11,16 +11,6 @@ class Program
             force_create_dir: true,
             force_create_file: true
         );
-
-        string query = QueryMaker.Alter_Talbe.With_Name("oldname")
-            .Add_Column("col4", "int")
-            .Add_Column("col5", "int")
-            .Drop_Column("col2")
-            .Rename_Table("newtablename")
-            .Rename_Column("col1", "col6")
-            .ExecuteNonQuery();
-
-        System.Console.WriteLine(query);
     }
 
     class MyServer : HttpServer
