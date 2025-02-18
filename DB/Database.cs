@@ -2,7 +2,7 @@ using System.Data;
 using Microsoft.Data.Sqlite;
 using SQLitePCL;
 
-public class Database : IDisposable 
+public class Database : QueryMaker
 {
     private SqliteConnection connection;
 
@@ -11,24 +11,19 @@ public class Database : IDisposable
         string filePath = $"{dir}{database_name}.sqlite";
         string connectionString = $"Data Source={filePath}";
 
-        if(!Directory.Exists(dir))
+        if (!Directory.Exists(dir))
         {
-            if(force_create_dir) Directory.CreateDirectory(dir);
+            if (force_create_dir) Directory.CreateDirectory(dir);
             else throw new ArgumentException($"The given directory does not exist, consider setting 'force_create_dir' to True.\n(PATH = {filePath})");
         }
 
-        if(!File.Exists(filePath))
+        if (!File.Exists(filePath))
         {
-            if(!force_create_file) throw new ArgumentException( $"The given database file does not exist, consider setting 'force_create_file' to True.\n(PATH = {filePath})");
+            if (!force_create_file) throw new ArgumentException($"The given database file does not exist, consider setting 'force_create_file' to True.\n(PATH = {filePath})");
         }
 
         connection = new SqliteConnection(connectionString);
         connection.Open();
-    }
-
-    public SqliteCommand CreateCommand()
-    {
-        return connection.CreateCommand();
     }
 
     public void ExecuteNonQuery(string slq_query)
@@ -40,14 +35,14 @@ public class Database : IDisposable
                 command.CommandText = slq_query;
                 command.ExecuteNonQuery();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 System.Console.WriteLine(ex.Message);
             }
         }
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         connection.Dispose();
     }
