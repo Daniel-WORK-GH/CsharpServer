@@ -185,8 +185,8 @@ class HttpServer
     }
 
     public virtual void HandleRequest(string request, HttpListenerResponse response)
-    {
-        if(request.ToLower() == "database")
+    {   
+        if(request.Split('/')[0].ToLower() == "database")
         {
             SendRespondDatabase(request, response);
         }
