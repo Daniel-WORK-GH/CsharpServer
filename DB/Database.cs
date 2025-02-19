@@ -44,6 +44,34 @@ public class Database : QueryMaker
         }
     }
 
+    public void ExecuteReader(string sql_query)
+    {
+        using (var command = new SqliteCommand(sql_query, connection))
+        {
+            using (var reader = command.ExecuteReader())
+            {
+                int columnCount = reader.FieldCount;
+                for (int i = 0; i < columnCount; i++)
+                {
+                    string columnName = reader.GetName(i);
+                    Type columnType = reader.GetFieldType(i);
+                    Console.Write($"{columnName} ({columnType.Name})\t");
+                }
+                Console.WriteLine("\n" + new string('-', 40));
+
+                while (reader.Read())
+                {
+                    for (int i = 0; i < columnCount; i++)
+                    {
+                        Console.Write(reader[i] + "\t");
+                    }
+                    Console.WriteLine();
+                }
+            }
+        }
+
+    }
+
     public override void Dispose()
     {
         connection.Dispose();
