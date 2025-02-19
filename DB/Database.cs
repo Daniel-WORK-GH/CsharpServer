@@ -4,12 +4,23 @@ using SQLitePCL;
 
 public class Database : QueryMaker
 {
-    private SqliteConnection connection;
+    protected readonly SqliteConnection connection;
+
+    protected readonly string database_name;
+
+    protected readonly string dir;
+
+    protected readonly string database_path;
 
     public Database(string database_name, string dir = "Databases\\", bool force_create_dir = true, bool force_create_file = true)
     {
+        this.database_name = database_name;
+        this.dir = dir;
+
         string filePath = $"{dir}{database_name}.sqlite";
         string connectionString = $"Data Source={filePath}";
+
+        this.database_path = filePath;
 
         if (!Directory.Exists(dir))
         {

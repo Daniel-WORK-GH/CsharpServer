@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using Azure;
+using Azure.Core.Pipeline;
 
 class HttpServer
 {
@@ -13,9 +14,13 @@ class HttpServer
     private bool isRunning;
     public bool IsRunning => isRunning;
 
+    private ServerDatabase database;
+
+    private bool use_threading;
+
     Thread serverThread;
 
-    public HttpServer(string ip = "localhost", string port = "8080")
+    public HttpServer(string ip = "localhost", string port = "8080", bool use_threading = true)
     {
         this.addr = $"http://{ip}:{port}/";
         this.listener = new HttpListener();
@@ -23,12 +28,30 @@ class HttpServer
         this.webRootDirectory = $@"{Utils.CurrentDir}\Pages\";
 
         this.serverThread = new Thread(new ThreadStart(ThreadLoop));
+
+        this.use_threading = use_threading;
+
+        this.database = new ServerDatabase(
+            database_name: "Database",
+            dir: "Databases\\",
+            force_create_dir: true,
+            force_create_file: true,
+            auth: ("user", "1234")
+        );
     }
 
     public void Start()
     {
         this.isRunning = true;
-        this.serverThread.Start();
+        
+        if(this.use_threading)
+        {
+            this.serverThread.Start();
+        }
+        else 
+        {
+            ThreadLoop();
+        }
     }
 
     public void Stop()
@@ -53,6 +76,8 @@ class HttpServer
 
                 // Handle connection
                 HttpListenerResponse response = context.Response;
+
+                System.Console.WriteLine($"LOG: User {context.Request.RemoteEndPoint} requested {context.Request.Url}.");
 
                 if (context.Request.Url == null) return;
                 string requestedFile = context.Request.Url.AbsolutePath.TrimStart('/');
@@ -140,8 +165,34 @@ class HttpServer
         }
     }
 
+    public bool SendRespondDatabase(string requestedFile, HttpListenerResponse response)
+    {
+        try
+        {
+            string html = database.GetDatabasePage("user", "1234", requestedFile);
+            byte[] bytes = Encoding.UTF8.GetBytes(html);
+
+            response.StatusCode = (int)HttpStatusCode.Accepted;
+            response.ContentLength64 = html.Length;
+            response.ContentType = "text/html";
+            response.OutputStream.Write(bytes, 0, bytes.Length);
+            return true;
+        }
+        catch 
+        {
+            return false;
+        }
+    }
+
     public virtual void HandleRequest(string request, HttpListenerResponse response)
     {
-        SendRespondFile(request, response);
+        if(request.ToLower() == "database")
+        {
+            SendRespondDatabase(request, response);
+        }
+        else
+        {
+            SendRespondFile(request, response);
+        }
     }
 }

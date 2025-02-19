@@ -5,12 +5,17 @@ class Program
 {
     public static void Main()
     {
-        using Database db = new Database(
-            database_name: "Database",
-            dir: "Databases\\",
-            force_create_dir: true,
-            force_create_file: true
-        );
+        HttpServer server = new HttpServer(use_threading: false);
+        server.Start();
 
+        System.Console.WriteLine("hello");
+
+        string input;
+        do
+        {
+            input = Console.ReadLine()!.ToLower();
+        }while(input != "q");
+
+        server.Stop();
     }
 }
