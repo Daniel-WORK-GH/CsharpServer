@@ -54,6 +54,7 @@ public abstract class QueryMaker : IDisposable
         looping_column_name_type_builder
     {
         private string name;
+        
         private List<string> columns;
 
         private SqliteCommand command;

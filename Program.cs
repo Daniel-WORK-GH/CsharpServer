@@ -11,6 +11,8 @@ class Program
             force_create_dir: true,
             force_create_file: true
         );
+
+        System.Console.WriteLine(db.Create_table.With_Name("temp32").Add_Column("c1", "int").ExecuteNonQuery());
     }
 
     class MyServer : HttpServer
