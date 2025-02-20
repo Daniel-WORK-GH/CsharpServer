@@ -16,13 +16,15 @@ public abstract class QueryMaker : IDisposable
     {
         public NextT Add_Column(string name, string type);
     }
-
-    public interface looping_column_name_type_builder : query_builder_nonquery_end
+    
+    public interface looping_column_name_type_builder 
+        : query_builder_nonquery_end
     {
         public looping_column_name_type_builder Add_Column(string name, string type);
     }
 
-    public interface row_values_builder : query_builder_nonquery_end
+    public interface row_values_builder : 
+        query_builder_nonquery_end
     {
         public row_values_builder Add_Values(params object[] type);
     }
@@ -35,13 +37,13 @@ public abstract class QueryMaker : IDisposable
     public interface looping_table_column_alter_builder :
         query_builder_nonquery_end
     {
+        public looping_table_column_alter_builder Rename_Table(string newname);
+
         public looping_table_column_alter_builder Add_Column(string name, string type);
 
         public looping_table_column_alter_builder Drop_Column(string name);
 
         public looping_table_column_alter_builder Rename_Column(string oldname, string newname);
-
-        public looping_table_column_alter_builder Rename_Table(string newname);
     }
 
     public interface where_builder<NextT> : query_builder_nonquery_end
@@ -80,7 +82,7 @@ public abstract class QueryMaker : IDisposable
 
         public string ExecuteNonQuery()
         {
-            string query = $"CREATE TABLE {name} (\n\t{string.Join(",\n\t", this.columns)}\n);";
+            string query = $"CREATE TABLE {name} {(columns.Count == 0 ? "" : $"(\n\t{string.Join(",\n\t", this.columns)}\n)")};";
 
             try
             {
@@ -250,18 +252,7 @@ public abstract class QueryMaker : IDisposable
 
         public string ExecuteNonQuery()
         {
-            string query = $"ALTER TABLE {name} {string.Join($";\nALTER TABLE {name} ", this.alters)};";
-
-            try
-            {
-                command.CommandText = query;
-                command.ExecuteNonQuery();
-            }
-            catch (Exception e)
-            {
-                System.Console.WriteLine(e.Message);
-            }
-
+            string query = $"ALTER TABLE {name} {string.Join($";\nALTER TABLE {name} ", this.alters)};"; 
             return query;
         }
     }

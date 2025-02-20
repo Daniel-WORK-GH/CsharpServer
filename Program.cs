@@ -5,24 +5,17 @@ class Program
 {
     public static void Main()
     {
-        using Database db = new Database(
-            database_name: "Database",
-            dir: "Databases\\",
-            force_create_dir: true,
-            force_create_file: true
-        );
+        HttpServer server = new HttpServer(use_threading: false);
+        server.Start();
 
-        System.Console.WriteLine(db.Create_table.With_Name("temp32").Add_Column("c1", "int").ExecuteNonQuery());
-    }
+        System.Console.WriteLine("hello");
 
-    class MyServer : HttpServer
-    {
-        public override void HandleRequest(string request, HttpListenerResponse response)
+        string input;
+        do
         {
-            if (request == "send_hi")
-            {
-                this.SendRespondString("daniel<br>dan<br>dani<br>dana<br>danielle", response);
-            }
-        }
+            input = Console.ReadLine()!.ToLower();
+        }while(input != "q");
+
+        server.Stop();
     }
 }
