@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Dynamic;
+using System.Net;
 using System.Text;
 
 class Program
@@ -8,13 +9,11 @@ class Program
         HttpServer server = new HttpServer(use_threading: false);
         server.Start();
 
-        System.Console.WriteLine("hello");
-
         string input;
         do
         {
             input = Console.ReadLine()!.ToLower();
-        }while(input != "q");
+        } while (input != "q");
 
         server.Stop();
     }

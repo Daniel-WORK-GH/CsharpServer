@@ -14,7 +14,7 @@ class HttpServer
     private bool isRunning;
     public bool IsRunning => isRunning;
 
-    private ServerDatabase database;
+    private Database database;
 
     private bool use_threading;
 
@@ -31,24 +31,23 @@ class HttpServer
 
         this.use_threading = use_threading;
 
-        this.database = new ServerDatabase(
+        this.database = new Database(
             database_name: "Database",
             dir: "Databases\\",
             force_create_dir: true,
-            force_create_file: true,
-            auth: ("user", "1234")
+            force_create_file: true
         );
     }
 
     public void Start()
     {
         this.isRunning = true;
-        
-        if(this.use_threading)
+
+        if (this.use_threading)
         {
             this.serverThread.Start();
         }
-        else 
+        else
         {
             ThreadLoop();
         }
@@ -165,34 +164,8 @@ class HttpServer
         }
     }
 
-    public bool SendRespondDatabase(string requestedFile, HttpListenerResponse response)
-    {
-        try
-        {
-            string html = database.GetDatabasePage("user", "1234", requestedFile);
-            byte[] bytes = Encoding.UTF8.GetBytes(html);
-
-            response.StatusCode = (int)HttpStatusCode.Accepted;
-            response.ContentLength64 = html.Length;
-            response.ContentType = "text/html";
-            response.OutputStream.Write(bytes, 0, bytes.Length);
-            return true;
-        }
-        catch 
-        {
-            return false;
-        }
-    }
-
     public virtual void HandleRequest(string request, HttpListenerResponse response)
-    {   
-        if(request.Split('/')[0].ToLower() == "database")
-        {
-            SendRespondDatabase(request, response);
-        }
-        else
-        {
-            SendRespondFile(request, response);
-        }
+    {
+        SendRespondFile(request, response);
     }
 }
