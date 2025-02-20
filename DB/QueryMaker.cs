@@ -1,3 +1,5 @@
+using System.Data.SqlClient;
+using System.Reflection;
 using Microsoft.Data.Sqlite;
 
 public abstract class QueryMaker : IDisposable
@@ -16,14 +18,14 @@ public abstract class QueryMaker : IDisposable
     {
         public NextT Add_Column(string name, string type);
     }
-    
-    public interface looping_column_name_type_builder 
+
+    public interface looping_column_name_type_builder
         : query_builder_nonquery_end
     {
         public looping_column_name_type_builder Add_Column(string name, string type);
     }
 
-    public interface row_values_builder : 
+    public interface row_values_builder :
         query_builder_nonquery_end
     {
         public row_values_builder Add_Values(params object[] type);
@@ -51,12 +53,22 @@ public abstract class QueryMaker : IDisposable
         public NextT Where(string condition);
     }
 
+    public interface from_columns_builder<NextT> : query_builder_nonquery_end
+    {
+        public NextT Columns(Type t);
+    }
+
+    public interface from_name_builder<NextT> : query_builder_nonquery_end
+    {
+        public NextT From_Table(string name);
+    }
+
     private class create_table :
         table_name_builder<looping_column_name_type_builder>,
         looping_column_name_type_builder
     {
         private string name;
-        
+
         private List<string> columns;
 
         private SqliteCommand command;
@@ -252,7 +264,7 @@ public abstract class QueryMaker : IDisposable
 
         public string ExecuteNonQuery()
         {
-            string query = $"ALTER TABLE {name} {string.Join($";\nALTER TABLE {name} ", this.alters)};"; 
+            string query = $"ALTER TABLE {name} {string.Join($";\nALTER TABLE {name} ", this.alters)};";
             return query;
         }
     }
@@ -304,6 +316,69 @@ public abstract class QueryMaker : IDisposable
 
     }
 
+    private class select_ :
+        from_columns_builder<from_name_builder<query_builder_nonquery_end>>,
+        from_name_builder<query_builder_nonquery_end>,
+        query_builder_nonquery_end
+    {
+        private string name;
+
+        private string[] columns;
+
+        private SqliteCommand command;
+
+        private Type? type;
+
+        public select_(SqliteCommand command)
+        {
+            this.name = "";
+            this.columns = [];
+            this.command = command;
+        }
+
+        public from_name_builder<query_builder_nonquery_end> Columns(Type t)
+        {
+            this.type = t;
+            return this;
+        }
+
+        public query_builder_nonquery_end From_Table(string name)
+        {
+            this.name = name;
+            return this;
+        }
+
+        public string ExecuteNonQuery()
+        {
+            string query = $"SELECT {string.Join(", ", this.columns)} FROM {this.name};";
+
+            PropertyInfo[] properties = type!.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            try
+            {
+                command.CommandText = query;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        // Access each column by index or column name
+                        int id = reader.GetInt32(0); // 0 is the index of the 'id' column
+                        string name = reader.GetString(1); // 1 is the index of the 'name' column
+
+                        Console.WriteLine($"ID: {id}, Name: {name}");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine(e.Message);
+            }
+
+            return query;
+        }
+    }
+
     private SqliteConnection? connection;
 
     protected void SetConnection(SqliteConnection connection)
@@ -327,5 +402,8 @@ public abstract class QueryMaker : IDisposable
 
     public table_name_builder<where_builder<query_builder_nonquery_end>> Delete_From_Table =>
         new delete_from(connection!.CreateCommand());
+
+    public from_columns_builder<from_name_builder<query_builder_nonquery_end>> Select =>
+        new select_(connection!.CreateCommand());
 }
 
