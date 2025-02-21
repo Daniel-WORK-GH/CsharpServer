@@ -342,17 +342,6 @@ public abstract class QueryMaker : IDisposable
             this.command = command;
         }
 
-        public from_name_builder<query_builder_return_end<T>> Columns()
-        {
-            this.type = typeof(T);
-            return this;
-        }
-
-        public query_builder_return_end<T> From_Table(string name)
-        {
-            this.name = name;
-            return this;
-        }
 
         public T[] ExecuteQuery()
         {
@@ -393,6 +382,11 @@ public abstract class QueryMaker : IDisposable
             }
 
             return query;
+        }
+
+        public query_builder_return_end<query_builder_return_end<T>> From_Table(string name)
+        {
+            this.name = name;
         }
     }
 
