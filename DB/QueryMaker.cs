@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Data.SqlClient;
 using System.Reflection;
 using Microsoft.Data.Sqlite;
@@ -53,14 +54,19 @@ public abstract class QueryMaker : IDisposable
         public NextT Where(string condition);
     }
 
-    public interface from_columns_builder<NextT> : query_builder_nonquery_end
+    public interface from_columns_builder<NextT> where NextT : class 
     {
-        public NextT Columns(Type t);
+        public from_name_builder<NextT> Columns();       
     }
 
-    public interface from_name_builder<NextT> : query_builder_nonquery_end
+    public interface from_name_builder<NextT>
     {
-        public NextT From_Table(string name);
+        public query_builder_return_end<NextT> From_Table(string name);
+    }
+
+    public interface query_builder_return_end<T>
+    {
+        public T[] ExecuteQuery();
     }
 
     private class create_table :
@@ -316,10 +322,10 @@ public abstract class QueryMaker : IDisposable
 
     }
 
-    private class select_ :
-        from_columns_builder<from_name_builder<query_builder_nonquery_end>>,
-        from_name_builder<query_builder_nonquery_end>,
-        query_builder_nonquery_end
+    private class select_<T> :
+        from_columns_builder<from_name_builder<query_builder_return_end<T>>>,
+        from_name_builder<query_builder_return_end<T>>,
+        query_builder_return_end<T>
     {
         private string name;
 
@@ -336,23 +342,28 @@ public abstract class QueryMaker : IDisposable
             this.command = command;
         }
 
-        public from_name_builder<query_builder_nonquery_end> Columns(Type t)
+        public from_name_builder<query_builder_return_end<T>> Columns()
         {
-            this.type = t;
+            this.type = typeof(T);
             return this;
         }
 
-        public query_builder_nonquery_end From_Table(string name)
+        public query_builder_return_end<T> From_Table(string name)
         {
             this.name = name;
             return this;
         }
 
-        public string ExecuteNonQuery()
+        public T[] ExecuteQuery()
         {
             string query = $"SELECT {string.Join(", ", this.columns)} FROM {this.name};";
 
-            PropertyInfo[] properties = type!.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var fieldsWithAttribute = type!.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Where(field => field.IsDefined(typeof(Selectable), false));
+
+            Type genericListType = typeof(List<>).MakeGenericType(type);
+            object listInstance = Activator.CreateInstance(genericListType)!;
+            IList list = (listInstance as IList)!;
 
             try
             {
@@ -362,11 +373,17 @@ public abstract class QueryMaker : IDisposable
                 {
                     while (reader.Read())
                     {
-                        // Access each column by index or column name
-                        int id = reader.GetInt32(0); // 0 is the index of the 'id' column
-                        string name = reader.GetString(1); // 1 is the index of the 'name' column
+                        var temp = Activator.CreateInstance(type);
 
-                        Console.WriteLine($"ID: {id}, Name: {name}");
+                        foreach (var field in fieldsWithAttribute)
+                        {
+                            int fieldIndex = reader.GetOrdinal(field.Name);
+                            string fieldValue = reader.GetString(fieldIndex);
+
+                            field.SetValue(temp, fieldValue);
+                        }
+
+                        list.Add(temp);
                     }
                 }
             }
@@ -403,7 +420,7 @@ public abstract class QueryMaker : IDisposable
     public table_name_builder<where_builder<query_builder_nonquery_end>> Delete_From_Table =>
         new delete_from(connection!.CreateCommand());
 
-    public from_columns_builder<from_name_builder<query_builder_nonquery_end>> Select =>
+    public from_columns_builder<from_name_builder<query_builder_return_end<object>>> Select =>
         new select_(connection!.CreateCommand());
 }
 

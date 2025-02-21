@@ -9,6 +9,8 @@ class Program
         HttpServer server = new HttpServer(use_threading: false);
         server.Start();
 
+        Database db = new Database();
+
         string input;
         do
         {
