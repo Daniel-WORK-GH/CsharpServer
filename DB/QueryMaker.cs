@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Data.SqlClient;
+using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 
 public abstract class QueryMaker : IDisposable
@@ -20,8 +22,8 @@ public abstract class QueryMaker : IDisposable
         public NextT Add_Column(string name, string type);
     }
 
-    public interface looping_column_name_type_builder
-        : query_builder_nonquery_end
+    public interface looping_column_name_type_builder :
+        query_builder_nonquery_end
     {
         public looping_column_name_type_builder Add_Column(string name, string type);
     }
@@ -54,19 +56,24 @@ public abstract class QueryMaker : IDisposable
         public NextT Where(string condition);
     }
 
-    public interface from_columns_builder<NextT> where NextT : class 
-    {
-        public from_name_builder<NextT> Columns();       
-    }
-
     public interface from_name_builder<NextT>
     {
-        public query_builder_return_end<NextT> From_Table(string name);
+        public NextT From_Table(string name);
     }
 
     public interface query_builder_return_end<T>
     {
         public T[] ExecuteQuery();
+    }
+
+    public interface insert_table_name<NextT>
+    {
+        public NextT To_Table(string name);
+    }
+
+    public interface insert_table_values<NextT, T>
+    {
+        public NextT Values(T[] value);
     }
 
     private class create_table :
@@ -169,6 +176,58 @@ public abstract class QueryMaker : IDisposable
         public string ExecuteNonQuery()
         {
             string query = $"INSERT INTO {name} ({string.Join(", ", this.columns)}) VALUES\n\t{string.Join(",\n\t", this.rows)};";
+
+            try
+            {
+                command.CommandText = query;
+                command.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine(e.Message);
+            }
+
+            return query;
+        }
+    }
+
+    private class insert_<T> :
+        insert_table_name<insert_table_values<query_builder_nonquery_end, T>>,
+        insert_table_values<query_builder_nonquery_end, T>,
+        query_builder_nonquery_end
+    {
+        private string name;
+
+        private SqliteCommand command;
+
+        private T[] values;
+
+        public insert_(SqliteCommand command)
+        {
+            this.name = "";
+            this.command = command;
+            this.values = [];
+        }
+
+        public insert_table_values<query_builder_nonquery_end, T> To_Table(string name)
+        {
+            this.name = name;
+            return this;
+        }
+
+        public query_builder_nonquery_end Values(T[] value)
+        {
+            this.values = value;
+            return this;
+        }
+
+        public string ExecuteNonQuery()
+        {
+
+
+            string columns = ;
+
+            string query = $"INSERT INTO {name} ({columns}) VALUES\n\t{string.Join(",\n\t", this.rows)};";
 
             try
             {
@@ -323,7 +382,6 @@ public abstract class QueryMaker : IDisposable
     }
 
     private class select_<T> :
-        from_columns_builder<from_name_builder<query_builder_return_end<T>>>,
         from_name_builder<query_builder_return_end<T>>,
         query_builder_return_end<T>
     {
@@ -333,8 +391,6 @@ public abstract class QueryMaker : IDisposable
 
         private SqliteCommand command;
 
-        private Type? type;
-
         public select_(SqliteCommand command)
         {
             this.name = "";
@@ -342,17 +398,20 @@ public abstract class QueryMaker : IDisposable
             this.command = command;
         }
 
+        public query_builder_return_end<T> From_Table(string name)
+        {
+            this.name = name;
+            return this;
+        }
 
         public T[] ExecuteQuery()
         {
             string query = $"SELECT {string.Join(", ", this.columns)} FROM {this.name};";
 
-            var fieldsWithAttribute = type!.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+            var fieldsWithAttribute = typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(field => field.IsDefined(typeof(Selectable), false));
 
-            Type genericListType = typeof(List<>).MakeGenericType(type);
-            object listInstance = Activator.CreateInstance(genericListType)!;
-            IList list = (listInstance as IList)!;
+            List<T> list = new List<T>();
 
             try
             {
@@ -362,7 +421,7 @@ public abstract class QueryMaker : IDisposable
                 {
                     while (reader.Read())
                     {
-                        var temp = Activator.CreateInstance(type);
+                        var temp = Activator.CreateInstance(typeof(T));
 
                         foreach (var field in fieldsWithAttribute)
                         {
@@ -372,7 +431,7 @@ public abstract class QueryMaker : IDisposable
                             field.SetValue(temp, fieldValue);
                         }
 
-                        list.Add(temp);
+                        list.Add((T)temp!);
                     }
                 }
             }
@@ -381,12 +440,7 @@ public abstract class QueryMaker : IDisposable
                 System.Console.WriteLine(e.Message);
             }
 
-            return query;
-        }
-
-        public query_builder_return_end<query_builder_return_end<T>> From_Table(string name)
-        {
-            this.name = name;
+            return list.ToArray();
         }
     }
 
@@ -405,6 +459,9 @@ public abstract class QueryMaker : IDisposable
     public table_name_builder<column_names_builder<row_values_builder>> Insert_Into_Table =>
         new insert_into(connection!.CreateCommand());
 
+    public insert_table_name<insert_table_values<query_builder_nonquery_end, T>> Insert<T>() =>
+        new insert_<T>(connection!.CreateCommand());
+
     public table_name_builder<query_builder_nonquery_end> Drop_Table =>
         new drop_table(connection!.CreateCommand());
 
@@ -414,7 +471,7 @@ public abstract class QueryMaker : IDisposable
     public table_name_builder<where_builder<query_builder_nonquery_end>> Delete_From_Table =>
         new delete_from(connection!.CreateCommand());
 
-    public from_columns_builder<from_name_builder<query_builder_return_end<object>>> Select =>
-        new select_(connection!.CreateCommand());
+    public from_name_builder<query_builder_return_end<T>> Select<T>() =>
+        new select_<T>(connection!.CreateCommand());
 }
 

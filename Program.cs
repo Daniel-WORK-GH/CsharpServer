@@ -11,6 +11,8 @@ class Program
 
         Database db = new Database();
 
+        db.Insert<int>().To_Table().Values(new int[]{})
+
         string input;
         do
         {
