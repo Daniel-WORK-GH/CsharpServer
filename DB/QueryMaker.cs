@@ -17,10 +17,14 @@ public abstract class QueryMaker : IDisposable
         public NextT With_Name(string name);
     }
 
-    public interface looping_column_name_type_builder :
-        query_builder_nonquery_end
+    public interface column_name_type_builder<NextT>
     {
         public looping_column_name_type_builder Add_Column(string name, string type);
+    }
+
+    public interface looping_column_name_type_builder : column_name_type_builder<looping_column_name_type_builder>,  query_builder_nonquery_end
+    {
+        
     }
 
     public interface row_values_builder :
@@ -72,7 +76,8 @@ public abstract class QueryMaker : IDisposable
     }
 
     private class create_table :
-        table_name_builder<looping_column_name_type_builder>,
+        table_name_builder<column_name_type_builder<looping_column_name_type_builder>>,
+        column_name_type_builder<looping_column_name_type_builder>,
         looping_column_name_type_builder
     {
         private string name;
@@ -94,7 +99,7 @@ public abstract class QueryMaker : IDisposable
             return this;
         }
 
-        public looping_column_name_type_builder With_Name(string name)
+        public column_name_type_builder<looping_column_name_type_builder> With_Name(string name)
         {
             this.name = name;
             return this;
@@ -432,14 +437,11 @@ public abstract class QueryMaker : IDisposable
     {
         private string name;
 
-        private string[] columns;
-
         private SqliteCommand command;
 
         public select_(SqliteCommand command)
         {
             this.name = "";
-            this.columns = [];
             this.command = command;
         }
 
@@ -451,12 +453,13 @@ public abstract class QueryMaker : IDisposable
 
         public T[] ExecuteQuery()
         {
-            string query = $"SELECT {string.Join(", ", this.columns)} FROM {this.name};";
-
             var fieldsWithAttribute = typeof(T).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(field => field.IsDefined(typeof(QueryableField), false));
 
-            List<T> list = new List<T>();
+            var columns = from field in fieldsWithAttribute select field.Name;
+            string query = $"SELECT {string.Join(", ", columns)} FROM {this.name};";
+
+            List<T> result = new List<T>();
 
             try
             {
@@ -471,12 +474,14 @@ public abstract class QueryMaker : IDisposable
                         foreach (var field in fieldsWithAttribute)
                         {
                             int fieldIndex = reader.GetOrdinal(field.Name);
-                            string fieldValue = reader.GetString(fieldIndex);
+                            object fieldValue = reader.GetValue(fieldIndex);
 
-                            field.SetValue(temp, fieldValue);
+                            object convertedValue = Convert.ChangeType(fieldValue, field.FieldType);
+
+                            field.SetValue(temp, convertedValue);
                         }
 
-                        list.Add((T)temp!);
+                        result.Add((T)temp!);
                     }
                 }
             }
@@ -485,7 +490,7 @@ public abstract class QueryMaker : IDisposable
                 System.Console.WriteLine(e.Message);
             }
 
-            return list.ToArray();
+            return result.ToArray();
         }
     }
 
@@ -498,7 +503,7 @@ public abstract class QueryMaker : IDisposable
 
     public abstract void Dispose();
 
-    public table_name_builder<looping_column_name_type_builder> Create_table =>
+    public table_name_builder<column_name_type_builder<looping_column_name_type_builder>> Create_table =>
         new create_table(connection!.CreateCommand());
 
     public table_name_builder<query_builder_nonquery_end> Create_Table_For<T>() =>
