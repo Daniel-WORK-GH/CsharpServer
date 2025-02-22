@@ -1,4 +1,5 @@
-class Selectable : Attribute
+[AttributeUsage(AttributeTargets.Field)]
+class QueryableField : Attribute
 {
 
 }
