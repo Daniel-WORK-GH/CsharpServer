@@ -18,5 +18,17 @@ class Program
     public static void Main(string[] args)
     {
         Database db = new Database("Database");
+
+        db.Insert_Into_Table.With_Name("Users")
+            .Values([new User() { name = "dan" }, new User() { name = "daniel" }])
+            .ExecuteNonQuery();
+        System.Console.WriteLine("1");
+        var users = db.Select.Type<User>().From_Table("Users").ExecuteQuery();
+        System.Console.WriteLine("2");
+
+        foreach (var u in users)
+        {
+            System.Console.WriteLine(u.name);
+        }
     }
 }
