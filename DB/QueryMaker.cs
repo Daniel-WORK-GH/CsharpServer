@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
 
 public abstract partial class QueryMaker : IDisposable
@@ -453,11 +454,20 @@ public abstract partial class QueryMaker : IDisposable
                                 int fieldIndex = reader.GetOrdinal(field.Name);
                                 object fieldValue = reader.GetValue(fieldIndex);
 
-                                object convertedValue = Convert.ChangeType(fieldValue, field.FieldType);
-
+                                object? convertedValue = null;
+                                if (fieldValue != DBNull.Value)
+                                {
+                                    if (Nullable.GetUnderlyingType(field.FieldType) != null)
+                                    {
+                                        convertedValue = Convert.ChangeType(fieldValue, Nullable.GetUnderlyingType(field.FieldType)!);
+                                    }
+                                    else
+                                    {
+                                        convertedValue = Convert.ChangeType(fieldValue, field.FieldType);
+                                    }
+                                }
                                 field.SetValue(temp, convertedValue);
                             }
-
                             result.Add((T)temp!);
                         }
                     }

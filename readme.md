@@ -71,33 +71,18 @@ class Program
 {
     public static void Main(string[] args)
     {
-        var users = db.Select<User>().From_Table("Users").ExecuteQuery();
+        Database db = new Database("Database");
 
-        // Use database users here..
+        db.Insert_Into_Table.With_Name("Users")
+            .Values([new User() { name = "dan" }, new User() { name = "daniel" }])
+            .ExecuteNonQuery();
+
+        var users = db.Select.Type<User>().From_Table("Users").ExecuteQuery();
+
+        foreach (var u in users)
+        {
+            System.Console.WriteLine(u.name);
+        }
     }
 }
-
-```
-
-### SELECT {type} FROM {name};
-Usage:
-```cs
-Querymaker.Select<Type>()
-    .From_Table("name")
-    .ExecuteQuery();
-```
-
-### INSERT {type} TO {table} VALUES {values};
-Usage:
-```cs
-Querymaker.Insert<Type>()
-    .To_Table("table_name")
-    .Values({values})
-    .ExecuteNonQuery()
-```
-
-### CREATE TABLE {name} FOR {type};
-Usage:
-```cs
-Querymaker.Create_Table_For<Type>().With_Name("name");
 ```
