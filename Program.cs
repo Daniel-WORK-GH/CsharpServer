@@ -14,8 +14,8 @@ class Program
     {
         Database db = new Database("Database");
 
-        
 
-        db.Insert_Into_Table.With_Name("Users").Values([new User(){id = 100}]).ExecuteNonQuery();
+
+        db.Delete_From_Table.With_Name("Users").ExecuteNonQuery();
     }
 }
