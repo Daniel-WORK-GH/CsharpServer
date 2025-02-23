@@ -27,14 +27,14 @@ public static class Utils
             return "INTEGER";
         }
         else if (fieldType == typeof(float) ||
-                    fieldType == typeof(double) ||
-                    fieldType == typeof(decimal))
+            fieldType == typeof(double) ||
+            fieldType == typeof(decimal))
         {
             return "REAL";
         }
         else if (fieldType == typeof(string) ||
-                    fieldType == typeof(char) ||
-                    fieldType == typeof(DateTime))
+            fieldType == typeof(char) ||
+            fieldType == typeof(DateTime))
         {
             return "TEXT";
         }
