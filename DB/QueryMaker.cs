@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using System.Security.Cryptography;
 using Microsoft.Data.Sqlite;
@@ -38,7 +39,6 @@ public abstract partial class QueryMaker : IDisposable
     {
 
     }
-
 
     private class create_table : with_name<add_column>, add_column, add_columns
     {
@@ -155,58 +155,64 @@ public abstract partial class QueryMaker : IDisposable
 
     #region ALTER TABLE
 
-    public interface alter_table_parts : non_query_end
+    public interface alter_parts_p1
     {
-        public alter_table_parts Rename_Table(string newname);
+        public alter_parts_p2 Rename_Table(string newname);
 
-        public alter_table_parts Add_Column(string name, string type);
+        public alter_parts_p2 Add_Column(string name, string type);
 
-        public alter_table_parts Drop_Column(string name);
+        public alter_parts_p2 Drop_Column(string name);
 
-        public alter_table_parts Rename_Column(string oldname, string newname);
+        public alter_parts_p2 Rename_Column(string oldname, string newname);
+    }
+
+    public interface alter_parts_p2 : alter_parts_p1,  non_query_end
+    {
+
     }
 
     private class alter_table :
-        with_name<alter_table_parts>,
-        alter_table_parts
+        with_name<alter_parts_p1>,
+        alter_parts_p1,
+        alter_parts_p2
     {
         private string name;
 
         private List<string> alters;
 
-        private SqliteCommand command;
+        private SqliteConnection connection;
 
-        public alter_table(SqliteCommand command)
+        public alter_table(SqliteConnection connection)
         {
             this.name = "";
             this.alters = new List<string>();
-            this.command = command;
+            this.connection = connection;
         }
 
-        public alter_table_parts With_Name(string name)
+        public alter_parts_p1 With_Name(string name)
         {
             this.name = name;
             return this;
         }
 
-        public alter_table_parts Add_Column(string name, string type)
+        public alter_parts_p2 Add_Column(string name, string type)
         {
             this.alters.Add($"ADD COLUMN {name} {type}");
             return this;
         }
-        public alter_table_parts Drop_Column(string name)
+        public alter_parts_p2 Drop_Column(string name)
         {
             this.alters.Add($"DROP COLUMN {name}");
             return this;
         }
 
-        public alter_table_parts Rename_Column(string oldname, string newname)
+        public alter_parts_p2 Rename_Column(string oldname, string newname)
         {
             this.alters.Add($"RENAME COLUMN {oldname} TO {newname}");
             return this;
         }
 
-        public alter_table_parts Rename_Table(string newname)
+        public alter_parts_p2 Rename_Table(string newname)
         {
             this.alters.Add($"RENAME TO {newname}");
             return this;
@@ -215,6 +221,18 @@ public abstract partial class QueryMaker : IDisposable
         public string ExecuteNonQuery()
         {
             string query = $"ALTER TABLE {name} {string.Join($";\nALTER TABLE {name} ", this.alters)};";
+
+            try
+            {   
+                var command = connection.CreateCommand();
+                command.CommandText = query;
+                command.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                System.Console.WriteLine(e.Message);
+            }
+        
             return query;
         }
     }
@@ -284,11 +302,11 @@ public abstract partial class QueryMaker : IDisposable
         public add_values Add_Values(params object[] type)
         {
             int row_index = this.rows.Count;
-            this.rows.Add($"@{string.Join($"_{row_index}, @", this.columns)}_{row_index})");
+            this.rows.Add(string.Join(", ", from c in this.columns select $"@{c}_{row_index}"));
 
             for (int i = 0; i < Math.Min(type.Length, columns.Count); i++)
             {
-                // TODO
+                command.Parameters.AddWithValue($"@{this.columns[i]}_{row_index}", type[i]);
             }
 
             return this;
@@ -508,8 +526,8 @@ public abstract partial class QueryMaker : IDisposable
     public with_name<non_query_end> Drop_Table =>
         new drop_table(connection!.CreateCommand());
 
-    public with_name<alter_table_parts> Alter_Talbe =>
-        new alter_table(connection!.CreateCommand());
+    public with_name<alter_parts_p1> Alter_Talbe =>
+        new alter_table(connection!);
 
     public with_name<to_columns_or_type> Insert_Into_Table =>
         new insert_into(connection!.CreateCommand());
