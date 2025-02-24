@@ -5,7 +5,7 @@ using Microsoft.Data.Sqlite;
 
 public abstract partial class QueryMaker : IDisposable
 {
-    #region ____ RECURRING ____
+    #region RECURRING
 
     public interface query_end<T>
     {
@@ -25,7 +25,7 @@ public abstract partial class QueryMaker : IDisposable
     #endregion
 
 
-    #region ____ CREATE TABLE ____
+    #region CREATE TABLE
 
     public interface add_column
     {
@@ -110,7 +110,7 @@ public abstract partial class QueryMaker : IDisposable
     #endregion
 
 
-    #region ____ DROP TABLE ____
+    #region DROP TABLE
 
     private class drop_table :
         with_name<non_query_end>,
@@ -153,7 +153,7 @@ public abstract partial class QueryMaker : IDisposable
     #endregion
 
 
-    #region ____ ALTER TABLE ____
+    #region ALTER TABLE
 
     public interface alter_table_parts : non_query_end
     {
@@ -222,7 +222,7 @@ public abstract partial class QueryMaker : IDisposable
     #endregion
 
 
-    #region ____ INSERT ____
+    #region INSERT INTO
 
     public interface to_columns_or_type
     {
@@ -340,7 +340,7 @@ public abstract partial class QueryMaker : IDisposable
     #endregion
 
 
-    #region ____ DELETE FROM ____
+    #region DELETE FROM 
 
     public interface where_builder : non_query_end
     {
@@ -397,7 +397,7 @@ public abstract partial class QueryMaker : IDisposable
     #endregion
 
 
-    #region ____ SELECT ____
+    #region SELECT
 
     public interface type_selector
     {
